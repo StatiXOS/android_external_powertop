@@ -41,10 +41,3 @@ static inline __u32 ethtool_cmd_speed(struct ethtool_cmd *ep)
 {
 	return (ep->speed_hi << 16) | ep->speed;
 }
-
-static inline char *strchrnul(const char *s, int c)
-{
-	while (*s && (*s != c))
-		s++;
-	return (char *)s;
-}

@@ -95,5 +95,9 @@ LOCAL_SRC_FILES += \
 	traceevent/parse-utils.c \
 	traceevent/trace-seq.c
 
+LOCAL_SRC_FILES += \
+	glob/glob.c
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/glob
+
 systemimage: powertop
 include $(BUILD_EXECUTABLE)
