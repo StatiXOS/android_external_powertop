@@ -39,6 +39,7 @@
 #include <locale.h>
 #include <sys/resource.h>
 #include <limits.h>
+#include <pthread.h>
 
 #include "cpu/cpu.h"
 #include "process/process.h"
@@ -60,6 +61,7 @@
 
 
 #include "tuning/tuning.h"
+#include "wakeup/wakeup.h"
 
 #include "display.h"
 #include "devlist.h"
@@ -267,7 +269,7 @@ void one_measurement(int seconds, int sample_interval, char *workload)
 	}
 	report_process_update_display();
 	tuning_update_display();
-
+	wakeup_update_display();
 	end_process_data();
 
 	global_power();
@@ -306,9 +308,11 @@ void make_report(int time, char *workload, int iterations, int sample_interval, 
 	for (int i=0; i != iterations; i++){
 		init_report_output(file, iterations);
 		initialize_tuning();
+		initialize_wakeup();
 		/* and then the real measurement */
 		one_measurement(time, sample_interval, workload);
 		report_show_tunables();
+		report_show_wakeup();
 		finish_report_output();
 		clear_tuning();
 	}
@@ -325,7 +329,7 @@ static void checkroot() {
 	uid = getuid();
 
 	if (uid != 0) {
-		printf(_("PowerTOP " POWERTOP_VERSION " must be run with root privileges.\n"));
+		printf(_("PowerTOP " PACKAGE_VERSION " must be run with root privileges.\n"));
 		printf(_("exiting...\n"));
 		exit(EXIT_FAILURE);
 	}
@@ -444,7 +448,7 @@ int main(int argc, char **argv)
 #endif
 	ui_notify_user = ui_notify_user_ncurses;
 	while (1) { /* parse commandline options */
-		c = getopt_long(argc, argv, "cC:r:i:qt:w:Vh", long_options, &option_index);
+		c = getopt_long(argc, argv, "cC::r::i:qt:w:Vh", long_options, &option_index);
 		/* Detect the end of the options. */
 		if (c == -1)
 			break;
@@ -537,6 +541,7 @@ int main(int argc, char **argv)
 
 	initialize_devfreq();
 	initialize_tuning();
+	initialize_wakeup();
 	/* first one is short to not let the user wait too long */
 	one_measurement(1, sample_interval, NULL);
 

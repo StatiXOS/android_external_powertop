@@ -68,11 +68,15 @@ static class abstract_cpu * new_package(int package, int cpu, char * vendor, int
 	char packagename[128];
 	if (strcmp(vendor, "GenuineIntel") == 0)
 		if (family == 6)
-			if (is_supported_intel_cpu(model))
+			if (is_supported_intel_cpu(model, cpu)) {
 				ret = new class nhm_package(model);
+				ret->set_intel_MSR(true);
+			}
 
-	if (!ret)
+	if (!ret) {
 		ret = new class cpu_package;
+		ret->set_intel_MSR(false);
+	}
 
 	ret->set_number(package, cpu);
 	ret->set_type("Package");
@@ -105,11 +109,16 @@ static class abstract_cpu * new_core(int core, int cpu, char * vendor, int famil
 
 	if (strcmp(vendor, "GenuineIntel") == 0)
 		if (family == 6)
-			if (is_supported_intel_cpu(model))
+			if (is_supported_intel_cpu(model, cpu)) {
 				ret = new class nhm_core(model);
+				ret->set_intel_MSR(true);
+			}
 
-	if (!ret)
+	if (!ret) {
 		ret = new class cpu_core;
+		ret->set_intel_MSR(false);
+	}
+
 	ret->set_number(core, cpu);
 	ret->childcount = 0;
 	ret->set_type("Core");
@@ -134,11 +143,15 @@ static class abstract_cpu * new_cpu(int number, char * vendor, int family, int m
 
 	if (strcmp(vendor, "GenuineIntel") == 0)
 		if (family == 6)
-			if (is_supported_intel_cpu(model))
+			if (is_supported_intel_cpu(model, number)) {
 				ret = new class nhm_cpu;
+				ret->set_intel_MSR(true);
+			}
 
-	if (!ret)
+	if (!ret) {
 		ret = new class cpu_linux;
+		ret->set_intel_MSR(false);
+	}
 	ret->set_number(number, number);
 	ret->set_type("CPU");
 	ret->childcount = 0;
@@ -234,7 +247,7 @@ static void handle_i965_gpu(void)
 void enumerate_cpus(void)
 {
 	ifstream file;
-	char line[1024];
+	char line[4096];
 
 	int number = -1;
 	char vendor[128];
@@ -258,7 +271,7 @@ void enumerate_cpus(void)
 				c++;
 				if (*c == ' ')
 					c++;
-				strncpy(vendor,c, 127);
+				pt_strcpy(vendor, c);
 			}
 		}
 		if (strncmp(line, "processor\t",10) == 0) {
@@ -291,7 +304,7 @@ void enumerate_cpus(void)
 		 */
 		if (strncasecmp(line, "bogomips\t", 9) == 0
 		    || strncasecmp(line, "CPU revision\t", 13) == 0
-		    || strncmp(line, "revision", 7) == 0) {
+		    || strncmp(line, "revision", 8) == 0) {
 			if (number == -1) {
 				/* Not all /proc/cpuinfo include "processor\t". */
 				number = 0;

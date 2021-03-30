@@ -127,12 +127,12 @@ ahci::ahci(char *_name, char *path): device()
 	start_slumber = 0;
 	start_devslp = 0;
 	start_partial = 0;
-	strncpy(sysfs_path, path, sizeof(sysfs_path));
+	pt_strcpy(sysfs_path, path);
 
 	register_sysfs_path(sysfs_path);
 
 	snprintf(devname, sizeof(devname), "ahci:%s", _name);
-	strncpy(name, devname, sizeof(name));
+	pt_strcpy(name, devname);
 	active_index = get_param_index("ahci-link-power-active");
 	partial_index = get_param_index("ahci-link-power-partial");
 
@@ -417,10 +417,6 @@ void ahci::report_device_stats(string *ahci_data, int idx)
 	double partial_util = get_result_value(partial_rindex, &all_results);
 	double slumber_util = get_result_value(slumber_rindex, &all_results);
 	double devslp_util = get_result_value(devslp_rindex, &all_results);
-
-	ahci_data[offset]=humanname;
-	printf("\nData from ahci %s\n",ahci_data[offset].c_str());
-	offset +=1;
 
 	snprintf(util, sizeof(util), "%5.1f",  active_util);
 	ahci_data[offset]= util;

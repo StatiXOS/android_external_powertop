@@ -46,9 +46,6 @@
 #define _(STRING)    (STRING)
 #endif
 
-#define POWERTOP_VERSION "v" PACKAGE_VERSION
-#define POWERTOP_SHORT_VERSION PACKAGE_VERSION
-
 extern int is_turbo(uint64_t freq, uint64_t max, uint64_t maxmo);
 
 extern int get_max_cpu(void);
@@ -62,7 +59,7 @@ extern const char *kernel_function(uint64_t address);
 
 
 
-
+#include <ctime>
 #include <string>
 using namespace std;
 

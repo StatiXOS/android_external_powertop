@@ -45,47 +45,69 @@ static int intel_cpu_models[] = {
 	0x1A,	/* Core i7, Xeon 5500 series */
 	0x1E,	/* Core i7 and i5 Processor - Lynnfield Jasper Forest */
 	0x1F,	/* Core i7 and i5 Processor - Nehalem */
+	0x25,	/* Westmere */
+	0x27,	/* Medfield Atom */
+	0x2A,	/* SNB */
+	0x2C,	/* Westmere */
+	0x2D,	/* SNB Xeon */
 	0x2E,	/* Nehalem-EX Xeon */
 	0x2F,	/* Westmere-EX Xeon */
-	0x25,	/* Westmere */
-	0x27,	/* Medfield Atom*/
-	0x2C,	/* Westmere */
-	0x2A,	/* SNB */
-	0x2D,	/* SNB Xeon */
 	0x37,	/* BYT-M */
 	0x3A,	/* IVB */
-	0x3C,
-	0x3D,	/* Broadwell */
+	0x3C,	/* HSW */
+	0x3D,	/* BDW */
 	0x3E,	/* IVB Xeon */
 	0x3F,	/* HSX */
 	0x45,	/* HSW-ULT */
-	0x46,	/* HSW */
+	0x46,	/* HSW-G */
 	0x47,	/* BDW-H */
 	0x4C,	/* BSW */
 	0x4D,	/* AVN */
 	0x4F,	/* BDX */
 	0x4E,	/* SKY */
-	0x5E,	/* SKY */
+	0x55,	/* SKY-X */
 	0x56,	/* BDX-DE */
+	0x5C,	/* BXT-P */
+	0x5E,	/* SKY */
+	0x5F,   /* DNV */
+	0x66,   /* CNL-U/Y */
+	0x6A,	/* ICL_X*/
+	0x7A,   /* GLK */
+	0x7D,	/* ICL_DESKTOP */
+	0x7E,	/* ICL_MOBILE */
+	0x8C,	/* TGL_MOBILE */
+	0x8D,   /* TGL_DESKTOP */
+	0x8E,	/* KBL */
+	0X8F, 	/* SAPPHIRERAPIDS_X */
+	0x96,	/* EHL */
+	0x97,	/* ADL_DESKTOP */
+	0x9A,	/* ADL_MOBILE */
+	0x9C,	/* JSL */
+	0x9E,	/* KBL */
+	0xA5,   /* CML_DESKTOP */
+	0xA6,   /* CML_MOBILE */
+	0xA7,	/* RKL_DESKTOP */
 	0	/* last entry must be zero */
 };
 
 static int intel_pstate_driver_loaded = -1;
 
-int is_supported_intel_cpu(int model)
+int is_supported_intel_cpu(int model, int cpu)
 {
 	int i;
+	uint64_t msr;
 
 	for (i = 0; intel_cpu_models[i] != 0; i++)
 		if (model == intel_cpu_models[i])
-			return 1;
+			if (cpu < 0 || read_msr(cpu, MSR_APERF, &msr) >= 0)
+				return 1;
 
 	return 0;
 }
 
 int is_intel_pstate_driver_loaded()
 {
-	const string filename("/sys/devices/system/cpu/cpu0/cpufreq/scaling_driver");
+	const char *filename = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_driver";
 	const string intel_pstate("intel_pstate");
 	char line[32] = { '\0' };
 	ifstream file;
@@ -135,11 +157,12 @@ intel_util::intel_util()
 void intel_util::byt_has_ahci()
 {
 	dir = opendir("/sys/bus/pci/devices/0000:00:13.0");
-        if (!dir)
-                byt_ahci_support=0;
-	else
+	if (!dir)
+		byt_ahci_support=0;
+	else {
 		byt_ahci_support=1;
-        closedir(dir);
+		closedir(dir);
+	}
 }
 
 int intel_util::get_byt_ahci_support()
@@ -155,12 +178,32 @@ nhm_core::nhm_core(int model)
 		case 0x2A:	/* SNB */
 		case 0x2D:	/* SNB Xeon */
 		case 0x3A:      /* IVB */
-		case 0x3C:
+		case 0x3C:	/* HSW */
+		case 0x3D:	/* BDW */
 		case 0x3E:      /* IVB Xeon */
 		case 0x45:	/* HSW-ULT */
 		case 0x4E:	/* SKY */
+		case 0x55:	/* SKY-X */
 		case 0x5E:	/* SKY */
-		case 0x3D:	/* Intel Next Generation */
+		case 0x5F:	/* DNV */
+		case 0x5C:      /* BXT-P */
+		case 0x66:	/* CNL-U/Y */
+		case 0x6A:    	/* ICL_X*/
+		case 0x7A:	/* GLK */
+		case 0x7D:    	/* ICL_DESKTOP */
+		case 0x7E:	/* ICL_MOBILE */
+		case 0x8C:	/* TGL_MOBILE */
+		case 0x8D:	/* TGL_DESKTOP */
+		case 0x8E:	/* KBL */
+		case 0x8F:	/* SAPPHIRERAPIDS_X */
+		case 0x96:	/* EHL */
+		case 0x97:	/* ADL_DESKTOP */
+		case 0x9A:	/* ADL_MOBILE */
+		case 0x9C:	/* JSL */
+		case 0x9E:	/* KBL */
+		case 0xA5:      /* CML_DESKTOP */
+		case 0xA6:      /* CML_MOBILE */
+		case 0xA7:	/* RKL_DESKTOP */
 			has_c7_res = 1;
 	}
 
@@ -264,15 +307,11 @@ void nhm_core::measurement_end(void)
 	for (i = 0; i < cstates.size(); i++) {
 		struct idle_state *state = cstates[i];
 
-		if (state->after_count == 0) {
-			cout << "after count is 0\n";
+		if (state->after_count == 0)
 			continue;
-		}
 
-		if (state->after_count != state->before_count) {
-			cout << "count mismatch\n";
+		if (state->after_count != state->before_count)
 			continue;
-		}
 
 		state->usage_delta =    ratio * (state->usage_after    - state->usage_before)    / state->after_count;
 		state->duration_delta = ratio * (state->duration_after - state->duration_before) / state->after_count;
@@ -332,12 +371,32 @@ nhm_package::nhm_package(int model)
 		case 0x2A:	/* SNB */
 		case 0x2D:	/* SNB Xeon */
 		case 0x3A:      /* IVB */
-		case 0x3C:
+		case 0x3C:	/* HSW */
+		case 0x3D:	/* BDW */
 		case 0x3E:      /* IVB Xeon */
 		case 0x45:	/* HSW-ULT */
 		case 0x4E:	/* SKY */
+		case 0x55:	/* SKY-X */
+		case 0x5C:	/* BXT-P */
 		case 0x5E:	/* SKY */
-		case 0x3D:	/* Intel Next Generation */
+		case 0x5F:	/* DNV */
+		case 0x66:	/* CNL-U/Y */
+		case 0x6A:  	/* ICL_X*/
+		case 0x7A:	/* GLK */
+		case 0x7D:    	/* ICL_DESKTOP */
+		case 0x7E:	/* ICL_MOBILE */
+		case 0x8C:	/* TGL_MOBILE */
+		case 0x8D:	/* TGL_DESKTOP */
+		case 0x8E:	/* KBL */
+		case 0x8F:	/* SAPPHIRERAPIDS_X */
+		case 0x96:      /* EHL */
+		case 0x97:	/* ADL_DESKTOP */
+		case 0X9A:	/* ADL_MOBILE */
+		case 0x9C:	/* JSL */
+		case 0x9E:	/* KBL */
+		case 0xA5:      /* CML_DESKTOP */
+		case 0xA6:      /* CML_MOBILE */
+		case 0xA7:	/* RKL_DESKTOP */
 			has_c2c6_res=1;
 			has_c7_res = 1;
 	}
@@ -363,10 +422,27 @@ nhm_package::nhm_package(int model)
 
 	/*Has C8/9/10*/
 	switch(model) {
-		case 0x45: /*HSW*/
-		case 0x3D:
-		case 0x4E:
-		case 0x5E:
+		case 0x3D:	/* BDW */
+		case 0x45:	/* HSW */
+		case 0x4E:	/* SKY */
+		case 0x5C:	/* BXT-P */
+		case 0x5E:	/* SKY */
+		case 0x5F:	/* DNV */
+		case 0x66:	/* CNL-U/Y */
+		case 0x7A:	/* GLK */
+		case 0x7D:	/* ICL_DESKTOP */
+		case 0x7E:	/* ICL_MOBILE */
+		case 0x8C:	/* TGL_MOBILE */
+		case 0x8D:	/* TGL_DESKTOP */
+		case 0x8E:	/* KBL */
+		case 0x96:      /* EHL */
+		case 0x97:	/* ADL_DESKTOP */
+		case 0x9A:	/* ADL_MOBILE */
+		case 0x9C:	/* JSL */
+		case 0x9E:	/* KBL */
+		case 0xA5:      /* CML_DESKTOP */
+		case 0xA6:      /* CML_MOBILE */
+		case 0xA7:	/* RKL_DESKTOP */
 			has_c8c9c10_res = 1;
 			break;
 	}
@@ -507,15 +583,11 @@ void nhm_package::measurement_end(void)
 	for (i = 0; i < cstates.size(); i++) {
 		struct idle_state *state = cstates[i];
 
-		if (state->after_count == 0) {
-			cout << "after count is 0\n";
+		if (state->after_count == 0)
 			continue;
-		}
 
-		if (state->after_count != state->before_count) {
-			cout << "count mismatch\n";
+		if (state->after_count != state->before_count)
 			continue;
-		}
 
 		state->usage_delta =    ratio * (state->usage_after    - state->usage_before)    / state->after_count;
 		state->duration_delta = ratio * (state->duration_after - state->duration_before) / state->after_count;

@@ -124,7 +124,7 @@ static void system_info(void)
 	/* Set array of data in row Major order */
 	string *system_data = new string[sys_table.rows * sys_table.cols];
 	system_data[0]=__("PowerTOP Version");
-	snprintf(version_date, sizeof(version_date), "%s ran at %s", POWERTOP_VERSION, ctime(&now));
+	snprintf(version_date, sizeof(version_date), "%s ran at %s", PACKAGE_VERSION, ctime(&now));
 	system_data[1]=version_date;
 
 	str = read_sysfs_string("/proc/version");
@@ -212,7 +212,7 @@ void finish_report_output(void)
 	report.finish_report();
 	if (reportout.report_file)
 	{
-		fprintf(stderr, _("PowerTOP outputing using base filename %s\n"), reportout.filename);
+		fprintf(stderr, _("PowerTOP outputting using base filename %s\n"), reportout.filename);
 		fputs(report.get_result(), reportout.report_file);
 		fdatasync(fileno(reportout.report_file));
 		fclose(reportout.report_file);

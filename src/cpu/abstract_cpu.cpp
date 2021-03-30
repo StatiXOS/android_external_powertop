@@ -176,15 +176,11 @@ void abstract_cpu::measurement_end(void)
 	for (i = 0; i < cstates.size(); i++) {
 		struct idle_state *state = cstates[i];
 
-		if (state->after_count == 0) {
-			cout << "after count is 0 " << state->linux_name << "\n";
+		if (state->after_count == 0)
 			continue;
-		}
 
-		if (state->after_count != state->before_count) {
-			cout << "count mismatch " << state->after_count << " " << state->before_count << " on cpu " << number << "\n";
+		if (state->after_count != state->before_count)
 			continue;
-		}
 
 		state->usage_delta =    (state->usage_after    - state->usage_before)    / state->after_count;
 		state->duration_delta = (state->duration_after - state->duration_before) / state->after_count;
@@ -218,6 +214,17 @@ void abstract_cpu::insert_cstate(const char *linux_name, const char *human_name,
 		}
 		if (*c >= '0' && *c <='9') {
 			state->line_level = strtoull(c, NULL, 10);
+			if(*(c+1) != '-'){
+				int greater_line_level = strtoull(c, NULL, 10);
+				for(unsigned int pos = 0; pos < cstates.size(); pos++){
+					if(*c == cstates[pos]->human_name[1]){
+						if(*(c+1) != cstates[pos]->human_name[2]){
+							greater_line_level = max(greater_line_level, cstates[pos]->line_level);
+							state->line_level = greater_line_level + 1;
+						}
+					}
+				}
+			}
 			break;
 		}
 		c++;
