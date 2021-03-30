@@ -40,7 +40,9 @@ static char sccsid[] = "@(#)glob.c	8.3 (Berkeley) 10/13/93";
 __RCSID("$NetBSD: glob.c,v 1.35 2013/03/20 23:44:47 lukem Exp $");
 #endif
 #endif /* LIBC_SCCS and not lint */
-
+#if !defined(__UNCONST)
+#define __UNCONST(a)	((void *)(unsigned long)(const void *)(a))
+#endif
 /*
  * glob(3) -- a superset of the one defined in POSIX 1003.2.
  *

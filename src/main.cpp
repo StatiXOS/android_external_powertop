@@ -67,6 +67,8 @@
 #include "devlist.h"
 #include "report/report.h"
 
+#include "wakeup/wakeup.h"
+
 #define DEBUGFS_MAGIC          0x64626720
 
 #define NR_OPEN_DEF 1024 * 1024
@@ -103,7 +105,7 @@ static const struct option long_options[] =
 
 static void print_version()
 {
-	printf(_("PowerTOP version " POWERTOP_VERSION "\n"));
+	printf(_("PowerTOP version 2.8 \n"));
 }
 
 static bool set_refresh_timeout()
@@ -329,7 +331,7 @@ static void checkroot() {
 	uid = getuid();
 
 	if (uid != 0) {
-		printf(_("PowerTOP " PACKAGE_VERSION " must be run with root privileges.\n"));
+		printf(_("PowerTOP must be run with root privileges.\n"));
 		printf(_("exiting...\n"));
 		exit(EXIT_FAILURE);
 	}
